@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EO1Character.h"
+#include "Net/UnrealNetwork.h"
+#include "ShrineHeal.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -52,6 +54,8 @@ AEO1Character::AEO1Character()
 
 void AEO1Character::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AEO1Character::Interactuar);
+	
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
@@ -131,3 +135,32 @@ void AEO1Character::DoJumpEnd()
 	// signal the character to stop jumping
 	StopJumping();
 }
+
+void AEO1Character::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AEO1Character, VidaMaxima);
+	DOREPLIFETIME(AEO1Character, VidaActual);
+}
+
+void AEO1Character::Interactuar() { Server_Interact(); }
+
+bool AEO1Character::Server_Interact_Validate() { return true; }
+
+void AEO1Character::Server_Interact_Implementation()
+{
+	TArray<AActor*> OverlappingActors;
+	GetOverlappingActors(OverlappingActors, AShrineHeal::StaticClass());
+
+	for (AActor* Actor : OverlappingActors)
+	{
+		if (AShrineHeal* Shrine = Cast<AShrineHeal>(Actor))
+		{
+			if (Shrine->bIsAvailable) { Shrine->ProcessHealing(this); break; }
+		}
+	}
+}
+
+void AEO1Character::Client_ShowHealMessage_Implementation() { DisplayPrivateMessage(); }
+
+void AEO1Character::OnRep_VidaActual() { UpdateHealthUI(VidaActual, VidaMaxima); }

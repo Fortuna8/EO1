@@ -92,5 +92,33 @@ public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	
+	// Registro de red
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Health")
+	float VidaMaxima = 100.0f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_VidaActual, EditAnywhere, BlueprintReadWrite, Category = "Health")
+	float VidaActual = 50.0f;
+
+	UFUNCTION()
+	void OnRep_VidaActual();
+
+	// Eventos para Blueprint
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "UI")
+	void UpdateHealthUI(float CurrentHealth, float MaxHealth);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI")
+	void DisplayPrivateMessage();
+
+	// Lógica de Interacción
+	void Interactuar();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_Interact();
+
+	UFUNCTION(Client, Reliable)
+	void Client_ShowHealMessage();
 };
 
